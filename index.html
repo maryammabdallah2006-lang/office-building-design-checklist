@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F3F1EC">
+<title>HUMAN — Workplace Design Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+ --bg:#F3F1EC;--ink:#171717;--sec:#6E6B65;
+ --line:#DCD8CF;--line2:#B4AFA4;
+ --acc:#2B4A63; /* single accent: deep architectural blue */
+ --sans:'Archivo','IBM Plex Sans Arabic',system-ui,sans-serif;
+ --mono:'IBM Plex Mono','IBM Plex Sans Arabic',monospace;
+ --ar:'IBM Plex Sans Arabic','Archivo',system-ui,sans-serif;
+ --gridA:rgba(23,23,23,.03);--gridB:rgba(23,23,23,.055);--hh:99px}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.6 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:clip}
+/* faint architectural grid: 10px minor + 50px major */
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+ background-image:linear-gradient(var(--gridA) 1px,transparent 1px),linear-gradient(90deg,var(--gridA) 1px,transparent 1px),
+ linear-gradient(var(--gridB) 1px,transparent 1px),linear-gradient(90deg,var(--gridB) 1px,transparent 1px);
+ background-size:10px 10px,10px 10px,50px 50px,50px 50px}
+::selection{background:var(--acc);color:#F3F1EC}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:start}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+[hidden]{display:none!important}
+svg{display:block}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.ltr{direction:ltr;unicode-bidi:isolate;display:inline-block}
+.mir{display:inline-block}
+[dir=rtl] .mir{transform:scaleX(-1)}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+
+/* ---------- header ---------- */
+.hdr{position:sticky;top:0;z-index:50;background:rgba(243,241,236,.92);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--ink)}
+.wrap{padding-inline:18px}
+.hdrTop{display:flex;align-items:center;justify-content:space-between;gap:12px;height:56px}
+.brand{display:inline-flex;align-items:center;gap:9px;font:700 13px/1 var(--sans);letter-spacing:.24em;transition:opacity .2s}
+.brand:hover{opacity:.65}
+.bsq{width:7px;height:7px;background:var(--acc);flex:none}
+.hstep{display:none}
+.hstep b{font-weight:500;color:var(--ink)}
+.hbtns{display:flex;align-items:center;gap:10px}
+.tbtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;min-width:44px;padding:0 12px;border:1px solid var(--ink);font:500 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;transition:.2s}
+.tbtn:hover{background:var(--ink);color:var(--bg)}
+.ic{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.3;flex:none}
+.lang{display:flex;border:1px solid var(--ink)}
+.lbtn{min-height:44px;min-width:44px;padding:0 10px;text-align:center;font:500 10px var(--mono);letter-spacing:.1em;transition:.2s}
+.lbtn+.lbtn{border-inline-start:1px solid var(--ink)}
+.lbtn[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+/* progress strip: 01 ─○─ 14 + checked count */
+.strip{display:flex;align-items:center;gap:10px;height:42px;border-top:1px solid var(--line)}
+.sEnd{font:500 10px var(--mono);color:var(--sec)}
+.cnt{font:400 10px var(--mono);color:var(--sec);white-space:nowrap}
+.cnt b{font-weight:500;color:var(--ink)}
+.track{position:relative;flex:1;min-width:52px;height:100%}
+.track::before{content:"";position:absolute;inset-inline:0;top:50%;height:1px;background:var(--line2)}
+.tk{position:absolute;top:50%;width:1px;height:7px;background:var(--line2);transform:translate(-50%,-50%);transition:background .25s,height .25s}
+[dir=rtl] .tk{transform:translate(50%,-50%)}
+.tk.done{background:var(--acc);height:9px}
+.tFill{position:absolute;inset-inline-start:0;top:50%;height:2px;background:var(--acc);transform:translateY(-50%);transition:width .5s cubic-bezier(.4,0,.2,1)}
+.tNode{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 3px var(--bg);transform:translate(-50%,-50%);transition:left .5s cubic-bezier(.4,0,.2,1)}
+[dir=rtl] .tNode{transform:translate(50%,-50%)}
+/* tablet step chips */
+.chips{display:none}
+@media (min-width:768px){.chips{display:flex;gap:8px;padding:4px 0 12px;overflow-x:auto;scrollbar-width:none;border-top:1px solid var(--line)}.chips::-webkit-scrollbar{display:none}}
+.chip{flex:none;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 13px;border:1px solid var(--line2);font:500 12px/1 var(--sans);color:var(--sec);white-space:nowrap;transition:.2s}
+.chip .cn{font:500 10px var(--mono);color:var(--sec)}
+.chip .ct{padding-top:1px}
+.chip .ck{color:var(--acc);font-size:11px}
+.chip.done{border-color:var(--acc)}.chip.done .cn{color:var(--acc)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.chip.on .cn{color:var(--bg)}.chip.on .ck{color:var(--bg)}
+
+/* ---------- shell ---------- */
+.shell{flex:1;display:grid;grid-template-columns:1fr;align-items:start}
+.main{min-width:0;padding:22px 18px calc(96px + env(safe-area-inset-bottom,0px))}
+.inner{max-width:740px;margin:0 auto}
+.inner.wide{max-width:860px}
+.sheet{animation:sIn .34s ease both}
+@keyframes sIn{from{opacity:0;transform:translateY(12px)}}
+.railL,.railR{display:none}
+
+/* ---------- cover ---------- */
+.coverGrid{display:grid;gap:30px;padding-top:clamp(24px,5vh,52px)}
+.coverT{margin:10px 0 0;font:600 clamp(2.7rem,11.5vw,4.6rem)/0.98 var(--sans);letter-spacing:-.02em;text-transform:uppercase}
+.covSub{margin:18px 0 0;max-width:44ch;color:var(--sec)}
+.planWrap{position:relative;max-width:520px;border:1px solid var(--line2);padding:22px 14px 12px}
+.cm{position:absolute;font:400 13px/1 var(--mono);color:var(--line2);pointer-events:none}
+.cm.a{top:-7px;left:-6px}.cm.b{top:-7px;right:-6px}.cm.c{bottom:-7px;left:-6px}.cm.d{bottom:-7px;right:-6px}
+.plan{width:100%;height:auto;color:var(--ink)}
+.plan path,.plan rect,.plan circle{fill:none;stroke:currentColor;stroke-width:1}
+.plan .th{stroke-width:2}
+.plan .ac{stroke:var(--acc)}
+.plan .fsq{fill:currentColor;stroke:none}
+.plan text{fill:currentColor;stroke:none;font-family:var(--mono)}
+.plan .lbl{font-size:9px;font-weight:600;letter-spacing:2.5px;text-anchor:middle}
+.plan .lblS{font-size:6.5px;font-weight:500;letter-spacing:1.5px;text-anchor:middle;opacity:.55}
+.plan .draw{stroke-dasharray:1;stroke-dashoffset:1;animation:dr 1.2s cubic-bezier(.45,0,.2,1) forwards}
+@keyframes dr{to{stroke-dashoffset:0}}
+.plan .fd{opacity:0;animation:fIn .5s ease forwards}
+@keyframes fIn{to{opacity:1}}
+.planCap{display:flex;justify-content:space-between;gap:10px;margin-top:14px;padding-top:9px;border-top:1px solid var(--line);font:500 8.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--sec)}
+.covRow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.covSteps{font:600 10.5px var(--sans);letter-spacing:.18em;text-transform:uppercase}
+.covCount{font:400 10px var(--mono);color:var(--sec)}
+.covCount b{font-weight:500;color:var(--ink)}
+.covTrack{height:16px;margin-top:12px}
+.cMeta{margin-top:6px}
+.titleblock{display:flex;justify-content:space-between;gap:10px;margin-top:36px;padding-top:10px;border-top:1px solid var(--ink);font:500 8.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--sec)}
+
+/* ---------- step ---------- */
+.kLab{margin:28px 0 8px;font:500 10px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--sec)}
+.kLab b{font-weight:500;color:var(--ink)}
+.numRow{display:flex;align-items:center;gap:18px}
+.stepNum{font:300 clamp(4rem,15vw,7rem)/0.85 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.numRule{position:relative;flex:1;height:1px;background:var(--line2)}
+.numRule::before{content:"";position:absolute;inset-inline-start:0;top:-3px;width:7px;height:7px;background:var(--acc)}
+.stepT{margin:12px 0 0;font:600 clamp(1.7rem,7vw,2.7rem)/1.08 var(--sans);letter-spacing:0;text-transform:uppercase}
+.lead{margin:15px 0 0;max-width:56ch;color:var(--sec)}
+/* design-logic diagram */
+.lgcBox{margin:26px 0 0;border:1px solid var(--line2);padding:16px 16px 8px}
+.lgc{list-style:none;margin:0;padding:0}
+.lgc li{position:relative;display:flex;align-items:center;gap:11px;padding:6px 0;opacity:0;animation:ndIn .4s ease both}
+@keyframes ndIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.lgc li::before{content:"";width:7px;height:7px;flex:none;background:var(--bg);border:1.2px solid var(--ink)}
+.lgc li:last-child::before{background:var(--acc);border-color:var(--acc)}
+.lgc li:not(:last-child)::after{content:"";position:absolute;inset-inline-start:3px;top:calc(50% + 5px);bottom:calc(-50% + 5px);width:1px;background:var(--line2)}
+.lgc i{font:500 9px var(--mono);font-style:normal;color:var(--acc)}
+.lgc b{font:600 11px/1.25 var(--sans);letter-spacing:.1em;text-transform:uppercase}
+/* checklist — architectural specification list */
+.cl{list-style:none;margin:30px 0 0;padding:0;border-top:2px solid var(--ink)}
+.it{position:relative;display:grid;grid-template-columns:30px minmax(0,1fr) 24px;column-gap:12px;padding:15px 0 16px;border-bottom:1px solid var(--line);cursor:pointer}
+.it input{position:absolute;opacity:0;width:0;height:0}
+.ino{grid-column:1;grid-row:1;align-self:center;font:500 10.5px var(--mono);color:var(--sec);transition:color .25s}
+.itRule{grid-column:2;grid-row:1;align-self:center;height:1px;background:var(--line2);transition:background .25s}
+.ibox{grid-column:3;grid-row:1;justify-self:end;align-self:center;width:21px;height:21px;border:1.5px solid var(--ink);background:var(--bg);display:grid;place-items:center;transition:border-color .2s}
+.ibox svg{width:13px;height:13px;fill:none;stroke:var(--acc);stroke-width:2.2;stroke-linecap:square}
+.ibox svg path{stroke-dasharray:22;stroke-dashoffset:22;transition:stroke-dashoffset .3s ease .05s}
+.itx{grid-column:1/-1;grid-row:2;margin-top:9px;font-size:15px;line-height:1.55;max-width:62ch}
+.it:hover .ibox{border-color:var(--acc)}
+.it input:focus-visible~.ibox{outline:2px solid var(--acc);outline-offset:3px}
+.it.on .ino{color:var(--acc)}
+.it.on .itRule{background:var(--acc)}
+.it.on .ibox{border-color:var(--acc)}
+.it.on .ibox svg path{stroke-dashoffset:0}
+/* cross-reference to dimensions sheet */
+.ref{margin-top:20px;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px dashed var(--sec);padding:15px 16px;font:600 10px var(--sans);letter-spacing:.15em;text-transform:uppercase;color:var(--sec);transition:.2s}
+.ref:hover{color:var(--acc);border-color:var(--acc)}
+/* output */
+.out{position:relative;margin:26px 0 0;border:1px solid var(--line2);padding:15px 16px 17px}
+.out::before{content:"";position:absolute;top:-4.5px;inset-inline-start:14px;width:8px;height:8px;background:var(--acc)}
+.out .lab{margin-bottom:7px}
+.lab{margin:0 0 10px;font:600 10px/1.4 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--sec)}
+.outT{margin:0;font:500 14px/1.55 var(--sans)}
+/* inline prev/next (desktop) */
+.navbtns{display:none;justify-content:space-between;gap:14px;margin-top:44px;padding-top:18px;border-top:1px solid var(--ink)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:50px;padding:0 22px;border:1px solid var(--ink);font:600 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;transition:background .2s,color .2s,border-color .2s}
+.btn:not(.pri):hover{background:var(--ink);color:var(--bg)}
+.btn.pri{background:var(--ink);color:var(--bg)}
+.btn.pri:hover{background:var(--acc);border-color:var(--acc)}
+.btn.big{width:100%;justify-content:space-between;min-height:58px;padding:0 20px;font-size:13px;margin-top:24px}
+
+/* ---------- completion ---------- */
+.doneH{margin:10px 0 0;font:600 clamp(2.5rem,9vw,4.4rem)/1.02 var(--sans);letter-spacing:-.015em;text-transform:uppercase}
+.doneCount{margin:20px 0 0;font:500 12px var(--mono);letter-spacing:.2em}
+.doneCount b{font-weight:500;color:var(--acc)}
+.doneBar{width:min(420px,100%);height:2px;background:var(--acc);margin:12px 0 26px}
+.hch{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0;font:600 11.5px/1.5 var(--sans);letter-spacing:.14em;text-transform:uppercase}
+.hch .hsep{color:var(--acc);font-family:var(--mono);font-weight:400}
+.doneP{margin:22px 0 0;max-width:48ch;color:var(--sec)}
+.doneBtns{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+
+/* ---------- bottom nav (mobile / tablet) ---------- */
+.bnav{position:fixed;inset-inline:0;bottom:0;z-index:45;display:flex;border-top:1px solid var(--ink);background:rgba(243,241,236,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding-bottom:env(safe-area-inset-bottom)}
+.bb{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;min-height:62px;font:600 11.5px/1 var(--sans);letter-spacing:.15em;text-transform:uppercase;transition:background .2s}
+.bb:not(.pri):active{background:rgba(23,23,23,.06)}
+.bb.pri{background:var(--ink);color:var(--bg)}
+.bb.pri:hover{background:var(--acc)}
+
+/* ---------- shared drawer behaviour ---------- */
+.veil{position:fixed;inset:0;z-index:60;background:rgba(23,23,23,.35);opacity:0;pointer-events:none;transition:opacity .25s}
+body.dimsOpen,body.menuOpen{overflow:hidden}
+body.dimsOpen .veil,body.menuOpen .veil{opacity:1;pointer-events:auto}
+.drawer{position:fixed;z-index:61;top:0;bottom:0;inset-inline-end:0;width:min(400px,100%);background:var(--bg);border-inline-start:1px solid var(--ink);transform:translateX(calc(100% + 4px));transition:transform .32s cubic-bezier(.32,0,.2,1);overflow-y:auto;overscroll-behavior:contain}
+[dir=rtl] .drawer{transform:translateX(calc(-100% - 4px))}
+body.dimsOpen .drawer,body.menuOpen .drawer{transform:translateX(0)}
+.dHead{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;background:var(--bg);border-bottom:1px solid var(--ink)}
+.dT{margin:0;font:600 12px/1.3 var(--sans);letter-spacing:.16em;text-transform:uppercase}
+.dN{margin:4px 0 0;font:400 9px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--sec)}
+.dClose{width:44px;height:44px;flex:none;display:grid;place-items:center;border:1px solid var(--ink);font:300 20px/1 var(--sans);transition:.2s}
+.dClose:hover{background:var(--ink);color:var(--bg)}
+.dBody{padding:4px 20px 30px}
+.dm{padding:18px 0 16px;border-bottom:1px solid var(--line)}
+.dv{display:inline-block;direction:ltr;unicode-bidi:isolate;font:500 19px var(--mono);letter-spacing:-.01em}
+.dline{display:block;height:9px;margin:12px 0 9px;border-inline:1px solid var(--ink);position:relative}
+.dline::after{content:"";position:absolute;inset-inline:0;top:50%;border-top:1px solid var(--ink)}
+.dl2{font:500 9px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--sec)}
+
+/* ---------- shared rail bits (menu reuses these) ---------- */
+.rRule{height:1px;background:var(--line2);margin:16px 0;border:0}
+.dimsLink{display:flex;align-items:center;gap:9px;width:100%;padding:9px 0;font:600 10.5px/1.4 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--sec);transition:color .2s}
+.dimsLink:hover{color:var(--acc)}
+
+/* ---------- navigation menu drawer ---------- */
+.mBody{padding:10px 20px 36px}
+.mBody .lab{margin:16px 0 10px}
+.mv{display:grid;grid-template-columns:20px minmax(0,1fr);column-gap:10px;width:100%;min-height:54px;padding:12px;border:1px solid var(--line2);text-align:start;transition:border-color .2s}
+.mv+.mv{margin-top:8px}
+.mv .mdot{width:9px;height:9px;margin-top:4px;border:1.2px solid var(--sec);transition:.2s}
+.mv .mtx{font:600 12.5px/1.3 var(--sans);letter-spacing:.08em;text-transform:uppercase}
+.mv .msub{grid-column:2;margin-top:4px;font:400 11.5px/1.5 var(--sans);color:var(--sec)}
+.mv:hover{border-color:var(--ink)}
+.mv[aria-checked=true]{border-color:var(--ink)}
+.mv[aria-checked=true] .mdot{background:var(--acc);border-color:var(--acc)}
+.mSteps{list-style:none;margin:0;padding:0}
+.ms{display:flex;align-items:center;gap:12px;width:100%;min-height:50px;padding:8px 2px;border-bottom:1px solid var(--line);text-align:start}
+.ms .mn{font:500 10.5px var(--mono);color:var(--sec);width:20px;flex:none;transition:color .2s}
+.ms .mt{flex:1;font:500 13.5px/1.4 var(--sans);color:var(--ink);letter-spacing:.02em}
+.ms .mb{font:400 10px var(--mono);min-width:34px;text-align:end;color:var(--sec)}
+.ms .mb b{font-weight:400}
+.ms:hover .mt{font-weight:600}
+.ms.on .mn{color:var(--acc)}
+.ms.on .mt{font-weight:600}
+.ms.done .mn{color:var(--acc)}
+.ms.done .mb{color:var(--acc)}
+
+/* ---------- all checklist sheet ---------- */
+.allview .stepT{margin-top:6px}
+.allTop{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:26px}
+.allCnt{font:400 11px var(--mono);color:var(--sec)}
+.allCnt b{font-weight:500;color:var(--ink)}
+.alstep{padding-top:48px;scroll-margin-top:118px}
+.alHead{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:16px;align-items:start}
+.alNum{font:300 clamp(2.4rem,7vw,3.2rem)/0.9 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.alT{margin:4px 0 0;font:600 clamp(1.15rem,3.6vw,1.5rem)/1.18 var(--sans);text-transform:uppercase}
+.alChain{margin:10px 0 0;font:500 9.5px/1.9 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--sec)}
+.alChain .as{color:var(--acc);padding:0 3px}
+.alD{margin:8px 0 0;font-size:13.5px;line-height:1.6;color:var(--sec);max-width:62ch}
+.alC{padding-top:8px;font:400 10.5px var(--mono);color:var(--sec);white-space:nowrap}
+.alC b{font-weight:500;color:var(--ink)}
+.alC.done{color:var(--acc)}
+.alC.done b{color:var(--acc)}
+.allview .cl{margin-top:16px}
+.allview .it{padding:12px 0 13px}
+.allview .itx{font-size:14px;line-height:1.5}
+.allOut{margin:12px 0 0;font:400 11px/1.7 var(--mono);color:var(--sec)}
+.allOut b{font-weight:500;color:var(--ink);letter-spacing:.12em;text-transform:uppercase}
+.allview .titleblock{margin-top:56px}
+.allDone{margin-top:44px}
+.allDone .btn{width:100%;justify-content:space-between}
+
+/* ---------- desktop: drawing board ---------- */
+@media (min-width:768px){
+ .wrap{padding-inline:32px}
+ .main{padding:34px 32px calc(112px + env(safe-area-inset-bottom,0px))}
+ .stepNum{font-size:clamp(4.5rem,9vw,7rem)}
+}
+@media (min-width:1100px){
+ .wrap{padding-inline:24px}
+ .shell{grid-template-columns:240px minmax(0,1fr) 316px}
+ .hstep{display:block;flex:1;text-align:center;padding:0 12px;font:500 10px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .railL{display:block;position:sticky;top:99px;height:calc(100vh - 99px);overflow-y:auto;padding:26px 24px 30px;border-inline-end:1px solid var(--line2)}
+ .railR{display:block;position:sticky;top:99px;height:calc(100vh - 99px);overflow-y:auto;padding:26px 24px 30px;border-inline-start:1px solid var(--line2)}
+ .chips{display:none}
+ .bnav{display:none}
+ .navbtns{display:flex}
+ .lgcBox,.main .out{display:none}
+ .main{padding:40px 48px 72px}
+ .railSub{margin:10px 0 0;font:500 9px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--sec)}
+ .rol{list-style:none;margin:2px 0 0;padding:0}
+ .ni{display:flex;align-items:center;gap:10px;width:100%;padding:8px 0;color:var(--sec);font-size:12.5px;transition:color .2s}
+ .nm{width:8px;height:8px;flex:none;border:1px solid var(--sec);transition:.2s}
+ .nn{font:500 10px var(--mono);width:18px;flex:none}
+ .ntx{flex:1;line-height:1.35;letter-spacing:.04em;text-transform:uppercase;text-align:start}
+ .nbd{font:400 9.5px var(--mono);min-width:26px;text-align:end}
+ .ni:hover{color:var(--ink)}.ni:hover .nm{border-color:var(--ink)}
+ .ni.on{color:var(--ink);font-weight:600}
+ .ni.on .nm{background:var(--acc);border-color:var(--acc)}
+ .ni.on .nn{color:var(--acc)}
+ .ni.done .nm{background:var(--ink);border-color:var(--ink)}
+ .ni.done .nbd{color:var(--acc)}
+ .rfRow{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+ .rfRow .lab{margin:0}
+ .gCount{font:400 10px var(--mono)}
+ .gCount b{font-weight:500;color:var(--ink)}
+ .gBar{height:3px;background:var(--line);margin-top:9px}
+ .gBar i{display:block;height:100%;background:var(--acc);transition:width .4s}
+ .railR section{margin-bottom:2px}
+ .railR .outT{font-size:13px}
+ .rdm{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+ .dvS{display:inline-block;direction:ltr;unicode-bidi:isolate;font:500 13px var(--mono)}
+ .rdm .dl2{text-align:end}
+ .railR .dimsLink{margin-top:12px}
+ .railR .lgc b{font-size:10.5px}
+}
+@media (min-width:1280px){
+ .coverGrid{grid-template-columns:1.05fr .95fr;align-items:center;gap:44px}
+ .cMeta{grid-column:1}
+ .planWrap{grid-column:2;grid-row:1/3}
+}
+/* small-header fitting */
+@media (max-width:430px){.dbtn .ttx{display:none}}
+@media (max-width:370px){.dbtn{display:none}.hbtns{gap:8px}.tbtn{padding:0 10px}}
+
+/* ---------- Arabic / RTL ---------- */
+body[lang=ar]{font-family:var(--ar);font-size:15.5px;line-height:1.8}
+body[lang=ar] .lab,body[lang=ar] .kLab,body[lang=ar] .covSteps,body[lang=ar] .titleblock,body[lang=ar] .planCap,
+body[lang=ar] .bb,body[lang=ar] .btn,body[lang=ar] .tbtn,body[lang=ar] .dimsLink,body[lang=ar] .hch,
+body[lang=ar] .ntx,body[lang=ar] .railSub,body[lang=ar] .dT,body[lang=ar] .dN,body[lang=ar] .dl2,
+body[lang=ar] .ref,body[lang=ar] .lgc b,body[lang=ar] .mtx,body[lang=ar] .ms .mt,
+body[lang=ar] .alChain,body[lang=ar] .allOut b{letter-spacing:0}
+body[lang=ar] .stepT,body[lang=ar] .coverT,body[lang=ar] .doneH,body[lang=ar] .alT,body[lang=ar] .mtx{letter-spacing:0;line-height:1.3;text-transform:none}
+body[lang=ar] .lead,body[lang=ar] .itx,body[lang=ar] .outT,body[lang=ar] .doneP,body[lang=ar] .alD,body[lang=ar] .msub{line-height:1.85}
+body[lang=ar] .lgc b{font-size:13px}
+body[lang=ar] .hch{font-size:13px}
+body[lang=ar] .btn,body[lang=ar] .bb{font-size:13px}
+body[lang=ar] .tbtn{font-size:12px}
+body[lang=ar] .cnt,body[lang=ar] .covCount,body[lang=ar] .sEnd,body[lang=ar] .nbd{font-size:11px}
+body[lang=ar] .dN,body[lang=ar] .dl2{font-size:10.5px}
+body[lang=ar] .mtx{font-size:14px}
+body[lang=ar] .ms .mt{font-size:14.5px}
+body[lang=ar] .alChain{font-size:11px}
+body[lang=ar] .allOut{font-size:12.5px}
+body[lang=ar] .allCnt,body[lang=ar] .alC{font-size:11px}
+body[lang=ar] .plan text{letter-spacing:0}
+
+@media (prefers-reduced-motion:reduce){
+ *,:before,:after{animation-duration:.001s!important;animation-delay:0s!important;transition-duration:.001s!important}
+}
+</style>
+</head>
+<body lang="en">
+<div class="app" id="app"></div>
+<script>
+/* ============ DATA (content preserved from original) ============ */
+const UI={
+ t1:['WORKPLACE','أداة تصميم'],t2:['DESIGN TOOL','بيئة العمل'],
+ railSub:['WORKPLACE DESIGN TOOL','أداة تصميم بيئة العمل'],
+ docTitle:['Workplace Design Tool','أداة تصميم بيئة العمل'],
+ sub:['A Step-by-Step Design Guide for Office Buildings','دليل تصميمي خطوة بخطوة للمباني المكتبية'],
+ stepsCount:['14 DESIGN STEPS','14 خطوة تصميم'],
+ stepsShort:['STEPS','خطوات'],items:['ITEMS','عنصر'],
+ start:['START DESIGN','ابدأ التصميم'],
+ step:['STEP','الخطوة'],checkedL:['CHECKED','مكتملة'],index:['INDEX','الفهرس'],
+ logic:['DESIGN LOGIC','منطق التصميم'],finalTest:['FINAL DESIGN TEST','اختبار التصميم النهائي'],
+ output:['OUTPUT','المخرج'],prev:['BACK','رجوع'],next:['NEXT STEP','الخطوة التالية'],
+ dimsBtn:['DIMENSIONS','الأبعاد'],dimsT:['KEY DIMENSIONS','الأبعاد الأساسية'],
+ dimsNote:['ALL DIMENSIONS IN MM','جميع الأبعاد بالمليمتر'],
+ refer:['REFER TO KEY DIMENSIONS','ارجع إلى الأبعاد الأساسية'],
+ openSheet:['OPEN DIMENSIONS SHEET','افتح جدول الأبعاد'],close:['CLOSE','إغلاق'],
+ sheet:['SHEET','ورقة'],coverL:['COVER','الغلاف'],scale:['SCALE','المقياس'],
+ planCap:['SCHEMATIC PLAN — LEVEL 00','مخطط تخطيطي — الطابق 00'],
+ menuT:['MENU','القائمة'],navTitle:['NAVIGATION','التنقل'],
+ viewL:['VIEW','طريقة العرض'],stepsL:['STEPS','الخطوات'],
+ mv1:['STEP-BY-STEP','خطوة بخطوة'],mv1s:['Guide me through the design process','يرشدك عبر مسار التصميم خطوة بخطوة'],
+ mv2:['ALL CHECKLIST','القائمة الكاملة'],mv2s:['Review the entire project on one sheet','مراجعة المشروع بالكامل في ورقة واحدة'],
+ allK:['FULL PROJECT REVIEW','مراجعة المشروع الكاملة'],
+ allT:['ALL CHECKLIST','القائمة الكاملة'],
+ allLead:['All fourteen steps on a single specification sheet — progress is shared with the step-by-step view.','جميع الخطوات الأربع عشرة في ورقة مواصفات واحدة — ويُشارَك التقدّم مع عرض الخطوة بخطوة.'],
+ backStep:['BACK TO STEP VIEW','العودة إلى عرض الخطوات'],
+ endT:['END OF CHECKLIST','نهاية القائمة'],
+ doneK:['DESIGN REVIEW COMPLETE','اكتملت مراجعة التصميم'],
+ doneChain:[['USER','SPACE','MOVEMENT','PRIVACY','COMFORT'],['المستخدم','الفراغ','الحركة','الخصوصية','الراحة']],
+ doneT:['Your workplace design has been reviewed across the complete design workflow.','تمت مراجعة تصميم بيئة العمل الخاص بك عبر مسار التصميم الكامل.'],
+ again:['REVIEW AGAIN','مراجعة مرة أخرى'],reset:['RESET CHECKLIST','إعادة ضبط القائمة'],
+ navLabel:['Design steps','خطوات التصميم']
+};
+const DIMS=[
+ [['1200 × 800','MIN. WORK SURFACE'],['1200 × 800','الحد الأدنى لسطح العمل']],
+ [['1400–1600 × 800','PREFERRED'],['1400–1600 × 800','المفضل']],
+ [['720–740','DESK HEIGHT'],['720–740','ارتفاع المكتب']],
+ [['650–1250','SIT-STAND'],['650–1250','الجلوس والوقوف']],
+ [['≥ 900','CLEARANCE'],['≥ 900','الخلوص']],
+ [['≈ 1500','MAIN CIRCULATION'],['≈ 1500','الحركة الرئيسية']],
+ [['1000–1200','BACK-TO-BACK'],['1000–1200','ظهر إلى ظهر']],
+ [['500–750','SCREEN DISTANCE'],['500–750','مسافة الشاشة']]
+];
+const DLW=[72,88,34,54,28,62,44,38];
+const LBL={work:['WORK','مكاتب'],meet:['MEET','اجتماعات'],lobby:['LOBBY','اللوبي'],core:['CORE','النواة']};
+const STEPS=[
+{s:['Users & Needs','المستخدمون والاحتياجات'],t:['Define Users & Their Needs','تحديد المستخدمين واحتياجاتهم'],
+ d:['Start by defining who uses the building and what each user needs.','ابدأ بتحديد من يستخدم المبنى وما يحتاجه كل مستخدم.'],
+ l:[['User','Activity','Space','Requirements'],['المستخدم','النشاط','الفراغ','المتطلبات']],
+ o:['User groups + activities + privacy/access requirements','المستخدمون + الأنشطة + متطلبات الخصوصية والوصول'],
+ i:[['Identify all main user groups: employees, managers, executives, visitors, and service staff','تحديد مجموعات المستخدمين الرئيسية: الموظفون، المديرون، الإدارة التنفيذية، الزوار، وطاقم الخدمات'],
+ ['Define the main activities of each user group','تحديد الأنشطة الرئيسية لكل مجموعة من المستخدمين'],
+ ['Assign an appropriate spatial setting to each activity','تخصيص بيئة مكانية مناسبة لكل نشاط'],
+ ['Define the required level of privacy, access, interaction, and support for each user group','تحديد مستوى الخصوصية والوصول والتفاعل والدعم المطلوب لكل مجموعة'],
+ ['Separate public, staff, executive, and service needs where required','الفصل بين احتياجات الجمهور والموظفين والإدارة التنفيذية والخدمات عند الحاجة']]},
+{s:['Program','البرنامج'],t:['Build the Program','بناء البرنامج الوظيفي'],
+ d:['Translate activities into spaces and required capacities.','ترجمة الأنشطة إلى فراغات وسعات مطلوبة.'],
+ l:[['Activity','Space','Area','Capacity'],['النشاط','الفراغ','المساحة','السعة']],
+ o:['Complete spatial program + areas + capacities','البرنامج الفراغي المتكامل + المساحات + السعات'],
+ i:[['Provide a defined space for every required function','توفير فراغ محدد لكل وظيفة مطلوبة'],
+ ['Determine the required area and capacity of each space','تحديد المساحة والسعة المطلوبة لكل فراغ'],
+ ['Accommodate required furniture and equipment','استيعاب الأثاث والمعدات المطلوبة'],
+ ['Check dimensional requirements for each function','التحقق من المتطلبات الأبعادية لكل وظيفة'],
+ ['Allow adequate circulation within each space','توفير حيز حركة كافٍ داخل كل فراغ'],
+ ['Allow flexibility where functions or team sizes may change','إتاحة المرونة حيث قد تتغير الوظائف أو أحجام الفرق']]},
+{s:['Relationships','العلاقات'],t:['Organize Functional Relationships','تنظيم العلاقات الوظيفية'],
+ d:['Place spaces according to how they need to work together.','ضع الفراغات وفق ما يلزم لتعمل معًا.'],
+ l:[['Program','Adjacency','Zoning'],['البرنامج','التجاور','توزيع المناطق']],
+ o:['Bubble diagram / adjacency diagram','مخطط فقاعات / مخطط التجاور'],
+ i:[['Establish clear functional adjacencies','تحديد علاقات التجاور الوظيفي بوضوح'],
+ ['Entrance → Reception → Waiting → Meeting Zone','المدخل ← الاستقبال ← الانتظار ← منطقة الاجتماعات'],
+ ['Workstations → Huddle → Meeting → Shared Facilities','محطات العمل ← غرف الاجتماعات السريعة ← الاجتماعات ← المرافق المشتركة'],
+ ['Finance → Archive','المالية ← الأرشيف'],
+ ['Prayer → Ablution','المصلى ← أماكن الوضوء'],
+ ['Gym → Lockers → Changing/Shower','النادي الرياضي ← الخزائن ← غرف تغيير الملابس / الاستحمام'],
+ ['IT → Server / Risers','تقنية المعلومات ← الخوادم / مجاري التمديدات الرأسية'],
+ ['Connect support spaces to the users they serve','ربط مساحات الدعم بالمستخدمين الذين تخدمهم'],
+ ['Keep incompatible functions appropriately separated','فصل الوظائف غير المتوافقة بشكل مناسب']]},
+{s:['Movement','الحركة'],t:['Establish the Movement Hierarchy','تحديد التدرج الهرمي للحركة'],
+ d:['Decide how different users enter and move through the building.','حدد كيف يدخل المستخدمون المختلفون المبنى ويتحركون فيه.'],
+ l:[['Arrival','Movement','Distribution'],['الوصول','الحركة','التوزيع']],
+ o:['Movement hierarchy + circulation diagram','التدرج الهرمي للحركة + مخطط الحركة'],
+ i:[['Define the main vehicle entrance','تحديد مدخل المركبات الرئيسي'],
+ ['Define pedestrian arrival and the main entrance','تحديد وصول المشاة والمدخل الرئيسي'],
+ ['Provide drop-off where required','توفير منطقة نزول وصعود الركاب عند الحاجة'],
+ ['Separate visitor, employee, and service movement where required','الفصل بين حركة الزوار والموظفين والخدمات عند الحاجة'],
+ ['Provide dedicated service access where required','توفير وصول مخصص للخدمات عند الحاجة'],
+ ['Keep loading and service movement away from the main visitor approach','إبعاد حركة التحميل والخدمات عن مسار وصول الزوار الرئيسي'],
+ ['Establish clear primary and secondary circulation routes','تحديد مسارات حركة رئيسية وثانوية واضحة'],
+ ['Avoid unnecessary detours and dead ends','تجنب الالتفافات غير الضرورية والنهايات المسدودة'],
+ ['Keep circulation free from obstacles','إبقاء مسارات الحركة خالية من العوائق']]},
+{s:['Entrance','المدخل'],t:['Design the Entrance & Distribution','تصميم المدخل والتوزيع'],
+ d:['Make arrival and orientation immediately understandable.','اجعل الوصول والتوجه مفهومين فورًا.'],
+ l:[['Entrance','Reception','Waiting','Lobby distribution'],['المدخل','الاستقبال','الانتظار','التوزيع عبر اللوبي']],
+ o:['Clear arrival sequence + lobby distribution','تسلسل وصول واضح + توزيع من خلال اللوبي'],
+ i:[['Make the main entrance clearly identifiable','جعل المدخل الرئيسي واضح التمييز'],
+ ['Make reception visible immediately from the entrance','جعل الاستقبال مرئيًا فور الدخول'],
+ ['Provide adequate visitor waiting space','توفير مساحة انتظار كافية للزوار'],
+ ['Connect entrance directly to the main circulation system','ربط المدخل مباشرة بنظام الحركة الرئيسي'],
+ ['Make elevators and stairs easy to locate','جعل المصاعد والسلالم سهلة الاكتشاف'],
+ ['Allow visitors to reach meeting/public areas without entering work zones','تمكين الزوار من الوصول إلى مناطق الاجتماعات / المناطق العامة دون دخول مناطق العمل'],
+ ['Position security to control access without blocking arrival','وضع الأمن بحيث يتحكم في الدخول دون إعاقة الوصول'],
+ ['Use the lobby as a clear distribution node','استخدام اللوبي كعقدة توزيع واضحة']]},
+{s:['Core & Access','النواة والوصول'],t:['Locate the Core & Accessible Routes','تحديد موقع النواة والمسارات الميسّرة'],dims:1,
+ d:['Build an efficient vertical and accessible circulation system.','ابنِ نظامًا فعّالًا للحركة الرأسية والمسارات الميسّرة.'],
+ l:[['Arrival','Core','Accessible route','Destination'],['الوصول','النواة','المسار الميسّر','الوجهة']],
+ o:['Core + stairs + elevators + accessible circulation','النواة + السلالم + المصاعد + الحركة الميسّرة'],
+ i:[['Position the vertical core strategically','تحديد موقع النواة الرأسية بشكل استراتيجي'],
+ ['Provide accessible passenger elevators from main circulation','توفير مصاعد ركاب ميسّرة من مسار الحركة الرئيسي'],
+ ['Position emergency stairs appropriately','تحديد موقع سلالم الطوارئ بشكل مناسب'],
+ ['Separate service circulation where required','فصل حركة الخدمات عند الحاجة'],
+ ['Provide a continuous accessible route from arrival to major destinations','توفير مسار ميسّر متصل من نقطة الوصول إلى الوجهات الرئيسية'],
+ ['Avoid unnecessary level changes','تجنب تغييرات المناسيب غير الضرورية'],
+ ['Provide adequate door clearances and maneuvering space','توفير خلوصات كافية للأبواب ومساحات مناورة'],
+ ['Provide adequate corridor and turning dimensions','توفير أبعاد كافية للممرات ومساحات الدوران'],
+ ['Integrate accessible movement into the main circulation system','دمج الحركة الميسّرة في نظام الحركة الرئيسي']]},
+{s:['Zoning','توزيع المناطق'],t:['Zone Public / Work / Executive / Service','تقسيم المناطق: عام / عمل / تنفيذي / خدمات'],
+ d:['Create a clear privacy and access gradient.','أنشئ تدرجًا واضحًا في الخصوصية والوصول.'],
+ l:[['Public','Staff','Private','Service'],['عام','موظفون','خاص','خدمات']],
+ o:['Public → Staff → Private/Executive → Service zoning','عام ← موظفون ← خاص / تنفيذي ← خدمات'],
+ i:[['Place public functions near the entrance','وضع الوظائف العامة بالقرب من المدخل'],
+ ['Keep visitor meeting areas accessible without entering staff work zones','إتاحة الوصول إلى مناطق اجتماعات الزوار دون دخول مناطق عمل الموظفين'],
+ ['Organize general work areas as a controlled staff zone','تنظيم مناطق العمل العامة كمنطقة موظفين خاضعة للتحكم'],
+ ['Provide appropriate separation for confidential functions','توفير فصل مناسب للوظائف السرية'],
+ ['Position executive areas with appropriate privacy and access','وضع المناطق التنفيذية بخصوصية ووصول مناسبين'],
+ ['Provide managers with convenient access to their teams and private meeting spaces','تمكين المديرين من وصول مريح إلى فرقهم وإلى مساحات الاجتماعات الخاصة'],
+ ['Use assistant/PA spaces as an appropriate transition to executive areas where required','استخدام مساحات المساعدين / السكرتارية كمنطقة انتقالية مناسبة إلى المناطق التنفيذية عند الحاجة'],
+ ['Keep service and maintenance routes away from public and work areas','إبعاد مسارات الخدمات والصيانة عن المناطق العامة ومناطق العمل']]},
+{s:['Workplace','بيئة العمل'],t:['Design the Workplace','تصميم بيئة العمل'],
+ d:['Organize workstations according to the work itself.','نظّم محطات العمل وفق طبيعة العمل نفسه.'],
+ l:[['Workstation','Cluster','Circulation','Support'],['محطة العمل','التجمع','الحركة','الدعم']],
+ o:['Workstation modules + clusters + support spaces','وحدات محطات العمل + التجمعات + مساحات الدعم'],
+ i:[['Select the appropriate workstation type for each activity','اختيار نوع محطة العمل المناسب لكل نشاط'],
+ ['Provide enough space for the workstation, chair, user, and equipment','توفير مساحة كافية لمحطة العمل والكرسي والمستخدم والمعدات'],
+ ['Organize workstations into efficient clusters','تنظيم محطات العمل في تجمعات فعّالة'],
+ ['Provide adequate circulation around workstations','توفير حركة كافية حول محطات العمل'],
+ ['Keep circulation outside workstation clusters','إبقاء الحركة خارج تجمعات محطات العمل'],
+ ['Provide personal storage close to workstations','توفير تخزين شخصي قريب من محطات العمل'],
+ ['Provide shared storage and equipment where needed','توفير تخزين ومعدات مشتركة عند الحاجة'],
+ ['Use low dividers or spatial separation where visual privacy is required','استخدام فواصل منخفضة أو فصل مكاني حيث تلزم الخصوصية البصرية'],
+ ['Protect focused work from unnecessary movement and distractions','حماية العمل المركّز من الحركة والمشتتات غير الضرورية'],
+ ['Maintain flexibility for changing team sizes where required','الحفاظ على المرونة لتغير أحجام الفرق عند الحاجة']]},
+{s:['Work Settings','بيئات العمل'],t:['Create Different Work Settings','تهيئة بيئات عمل متنوعة'],
+ d:['Do not design the workplace as one single environment.','لا تصمم بيئة العمل كبيئة واحدة متجانسة.'],
+ l:[['Focus','Collaborate','Meet','Break / Recover'],['تركيز','تعاون','اجتماع','استراحة / تعافٍ']],
+ o:['Variety of work settings','تنوع في بيئات العمل'],
+ i:[['Provide quiet spaces for focused work','توفير مساحات هادئة للعمل المركّز'],
+ ['Provide team / collaboration spaces','توفير مساحات للعمل الجماعي والتعاون'],
+ ['Provide huddle rooms close to work clusters','توفير غرف اجتماعات سريعة قريبة من تجمعات العمل'],
+ ['Provide informal meeting spaces','توفير مساحات للاجتماعات غير الرسمية'],
+ ['Provide medium meeting rooms accessible from work areas','توفير غرف اجتماعات متوسطة يسهل الوصول إليها من مناطق العمل'],
+ ['Provide appropriate executive / boardroom meeting spaces','توفير مساحات مناسبة لاجتماعات الإدارة التنفيذية / قاعة مجلس الإدارة'],
+ ['Allow users to move between settings without disturbing others','تمكين المستخدمين من التنقل بين البيئات دون إزعاج الآخرين'],
+ ['Provide a choice of setting according to the activity','توفير حرية اختيار البيئة حسب النشاط']]},
+{s:['Shared & Wellbeing','المشتركة والرفاهية'],t:['Place Shared, Social & Wellbeing Spaces','توزيع المساحات المشتركة والاجتماعية ومساحات الرفاهية'],
+ d:['Use shared spaces to support interaction and recovery without disturbing focused work.','استخدم المساحات المشتركة لدعم التفاعل والتعافي دون إزعاج العمل المركّز.'],
+ l:[['Support','Social','Wellbeing'],['الدعم','الاجتماعي','الرفاهية']],
+ o:['Support + social + wellbeing network','شبكة الدعم + المساحات الاجتماعية + مساحات الرفاهية'],
+ i:[['Place printers, copy areas, storage and whiteboards where teams can easily reach them','وضع الطابعات ومناطق النسخ والتخزين والسبورات حيث تصل إليها الفرق بسهولة'],
+ ['Keep noisy shared facilities away from focused work where necessary','إبعاد المرافق المشتركة المزعجة عن العمل المركّز عند الحاجة'],
+ ['Locate meeting spaces close to the teams using them','وضع مساحات الاجتماعات بالقرب من الفرق التي تستخدمها'],
+ ['Distribute breakout and social spaces conveniently','توزيع مساحات الاستراحة والمساحات الاجتماعية بشكل مناسب'],
+ ['Separate lounges and social areas from quiet work areas','فصل الصالات والمناطق الاجتماعية عن مناطق العمل الهادئة'],
+ ['Provide cafeteria capacity according to expected users','توفير سعة كافتيريا تتناسب مع عدد المستخدمين المتوقع'],
+ ['Organize Kitchen → Serving → Dining clearly','تنظيم المطبخ ← التقديم ← الطعام بوضوح'],
+ ['Locate pantry and coffee points for convenient short interactions','وضع البانتري ونقاط القهوة لتسهيل التفاعلات القصيرة'],
+ ['Provide prayer space with direct connection to ablution','توفير مصلى متصل مباشرة بأماكن الوضوء'],
+ ['Provide appropriate gym, locker, changing and shower relationships','توفير علاقات مناسبة بين النادي الرياضي والخزائن وغرف التغيير والاستحمام'],
+ ['Provide first-aid space with appropriate privacy','توفير غرفة إسعافات أولية بخصوصية مناسبة']]},
+{s:['Support Spaces','مساحات الدعم'],t:['Provide Specialized Support Spaces','توفير مساحات الدعم المتخصصة'],
+ d:['Resolve technical, storage, sanitation, and operational requirements.','معالجة المتطلبات الفنية والتخزينية والصحية والتشغيلية.'],
+ l:[['Sanitation','Technical','Storage','Service'],['الصحية','الفنية','التخزين','الخدمات']],
+ o:['Complete support/service layer','طبقة الدعم / الخدمات المتكاملة'],
+ i:[['Provide appropriate male, female, and accessible toilets','توفير دورات مياه مناسبة للرجال والنساء وذوي الإعاقة'],
+ ['Ensure toilet circulation, clearances, and ventilation are adequate','ضمان كفاية حركة دورات المياه وخلوصاتها وتهويتها'],
+ ['Keep toilets visually and acoustically separated from work and meeting areas','فصل دورات المياه بصريًا وصوتيًا عن مناطق العمل والاجتماعات'],
+ ['Provide access to toilets from main workplace areas','إتاحة الوصول إلى دورات المياه من مناطق العمل الرئيسية'],
+ ['Provide controlled-access IT/server spaces','توفير مساحات تقنية معلومات / خوادم ذات دخول مُتحكَّم به'],
+ ['Maintain required equipment clearances around server equipment','الحفاظ على خلوصات المعدات المطلوبة حول معدات الخوادم'],
+ ['Keep water and waste pipes away from server rooms','إبعاد مواسير المياه والصرف عن غرف الخوادم'],
+ ['Provide adequate general storage','توفير تخزين عام كافٍ'],
+ ['Provide appropriately sized archive storage','توفير مساحة أرشيف بحجم مناسب'],
+ ['Provide archive aisles suitable for the shelving system','توفير ممرات أرشيف مناسبة لنظام الأرفف'],
+ ['Keep archive directly related to Finance/Admin functions','ربط الأرشيف مباشرة بوظائف المالية / الإدارة'],
+ ['Provide adequate print/copy facilities','توفير مرافق طباعة ونسخ كافية'],
+ ['Provide janitorial/storage spaces on each floor','توفير غرف تنظيف / تخزين لأدوات النظافة في كل طابق'],
+ ['Allow service staff to reach support spaces without disturbing office work','تمكين طاقم الخدمات من الوصول إلى مساحات الدعم دون إزعاج العمل المكتبي']]},
+{s:['Wayfinding','التوجيه المكاني'],t:['Design Wayfinding & User Experience','تصميم التوجيه المكاني وتجربة المستخدم'],
+ d:['Make the building understandable through architecture.','اجعل المبنى مفهومًا من خلال العمارة.'],
+ l:[['Destinations','Decision points','Orientation'],['الوجهات','نقاط القرار','التوجه']],
+ o:['Legible circulation + wayfinding','حركة مقروءة + توجيه مكاني'],
+ i:[['Make main destinations easy to identify','جعل الوجهات الرئيسية سهلة التمييز'],
+ ['Make decision points recognizable','جعل نقاط اتخاذ القرار قابلة للتعرف'],
+ ['Make circulation routes visually understandable','جعل مسارات الحركة مفهومة بصريًا'],
+ ['Use architectural elements to support orientation','استخدام العناصر المعمارية لدعم التوجه'],
+ ['Use landmarks, lighting, flooring, ceilings, or color where needed','استخدام المعالم والإضاءة والأرضيات والأسقف أو الألوان عند الحاجة'],
+ ['Ensure users can understand where they are and where they need to go','التأكد من أن المستخدمين يدركون أين هم وإلى أين يتجهون']]},
+{s:['Comfort','الراحة'],t:['Check Human Comfort & Control','مراجعة الراحة الإنسانية والتحكم'],
+ d:['Review the experience of the user inside the completed spatial system.','راجع تجربة المستخدم داخل المنظومة المكانية المكتملة.'],
+ l:[['Territory','Privacy','Recovery','Choice'],['المساحة الشخصية','الخصوصية','التعافي','حرية الاختيار']],
+ o:['Comfort + privacy + choice','الراحة + الخصوصية + حرية الاختيار'],
+ i:[['Provide adequate personal territory','توفير مساحة شخصية كافية'],
+ ['Provide personal storage and personalization where appropriate','توفير تخزين شخصي وإمكانية التخصيص عند الاقتضاء'],
+ ['Provide height-adjustable workstations where required','توفير مكاتب قابلة لتعديل الارتفاع عند الحاجة'],
+ ['Control unnecessary visual exposure','التحكم في التعرض البصري غير الضروري'],
+ ['Control unnecessary acoustic disturbance','التحكم في الإزعاج الصوتي غير الضروري'],
+ ['Provide spaces for short breaks and mental recovery','توفير مساحات للاستراحات القصيرة والتعافي الذهني'],
+ ['Provide different levels of stimulation and privacy','توفير مستويات مختلفة من التحفيز والخصوصية'],
+ ['Allow users to choose an appropriate working environment','تمكين المستخدمين من اختيار بيئة العمل المناسبة']]},
+{s:['Final Check','المراجعة النهائية'],t:['Final Plan Check','المراجعة النهائية للمخطط'],final:1,
+ d:['Before finalizing the design, verify the whole system together.','قبل اعتماد التصميم، تحقق من المنظومة ككل.'],
+ l:[['User','Activity','Space','Relationship','Movement','Privacy','Comfort'],['المستخدم','النشاط','الفراغ','العلاقة','الحركة','الخصوصية','الراحة']],
+ o:['Final design review','المراجعة النهائية للتصميم'],
+ i:[['Every required function has a defined space','لكل وظيفة مطلوبة فراغ محدد'],
+ ['Every space meets its required area and capacity','كل فراغ يحقق المساحة والسعة المطلوبتين'],
+ ['Furniture and equipment are accommodated','الأثاث والمعدات مستوعَبة'],
+ ['Functional adjacencies are reflected in the plan','علاقات التجاور الوظيفي منعكسة في المخطط'],
+ ['Public, staff, executive, and service circulation are clearly differentiated','حركة الجمهور والموظفين والإدارة التنفيذية والخدمات متمايزة بوضوح'],
+ ['Visitors can reach reception and meeting areas without entering work zones','يستطيع الزوار الوصول إلى الاستقبال ومناطق الاجتماعات دون دخول مناطق العمل'],
+ ['Work areas have appropriate privacy and circulation','مناطق العمل توفر خصوصية وحركة مناسبتين'],
+ ['Shared facilities are accessible without disturbing focused work','المرافق المشتركة متاحة دون إزعاج العمل المركّز'],
+ ['Accessible routes are continuous','المسارات الميسّرة متصلة'],
+ ['Service movement does not interfere with users','حركة الخدمات لا تتعارض مع المستخدمين'],
+ ['Work settings support different activities','بيئات العمل تدعم الأنشطة المختلفة'],
+ ['The building provides appropriate space, privacy, access, comfort, and choice for each user type','يوفر المبنى المساحة والخصوصية والوصول والراحة وحرية الاختيار المناسبة لكل نوع من المستخدمين']]}
+];
+
+/* ============ STATE ============ */
+const N=STEPS.length;
+const TOTAL=STEPS.reduce((a,s)=>a+s.i.length,0);
+const st={lang:0,view:'cover',step:0,checked:new Set()};
+const $L=a=>a[st.lang];
+const pad=n=>String(n).padStart(2,'0');
+const stepCount=si=>STEPS[si].i.reduce((a,_,ii)=>a+(st.checked.has(si+'.'+ii)?1:0),0);
+const pct=()=>Math.round(st.checked.size/TOTAL*100);
+const bdg=i=>stepCount(i)===STEPS[i].i.length?'✓':'<b class="ltr">'+stepCount(i)+'/'+STEPS[i].i.length+'</b>';
+const acB=i=>{const c=stepCount(i),n=STEPS[i].i.length;return (c===n?'✓ ':'')+'<b class="ltr">'+c+'/'+n+'</b>'};
+const P=f=>st.lang?100-f:f; /* physical left% for a flow fraction (RTL-aware) */
+const mir=c=>'<span class="mir" aria-hidden="true">'+c+'</span>';
+const ICON={
+ dim:'<svg class="ic" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 2v8M10.5 2v8M1.5 6h9"/></svg>',
+ menu:'<svg class="ic" viewBox="0 0 12 12" aria-hidden="true"><path d="M1 2.75h10M1 6h10M1 9.25h10"/></svg>'
+};
+let lastFrac=0,spy=null;
+
+/* ============ COMPONENTS ============ */
+const ticksHTML=()=>STEPS.map((s,i)=>'<span class="tk'+(stepCount(i)===s.i.length?' done':'')+'" data-tk="'+i+'" style="left:'+P(i/(N-1)*100).toFixed(3)+'%"></span>').join('');
+const chainV=l=>{const a=$L(l);return '<ol class="lgc">'+a.map((x,i)=>'<li style="animation-delay:'+(90+i*70)+'ms"><i aria-hidden="true">'+pad(i+1)+'</i><b>'+x+'</b></li>').join('')+'</ol>'};
+const chainInline=l=>{const a=$L(l);return a.map((x,i)=>(i?'<span class="as mir" aria-hidden="true">→</span>':'')+'<span>'+x+'</span>').join(' ')};
+
+function Header(){
+ const isStep=st.view==='step',isAll=st.view==='all';
+ const cnt=isStep
+  ?'<b class="ltr">'+stepCount(st.step)+' / '+STEPS[st.step].i.length+'</b> '+$L(UI.checkedL)
+  :'<b class="ltr">'+st.checked.size+' / '+TOTAL+'</b> '+$L(UI.checkedL);
+ let strip='';
+ if(st.view!=='cover'){
+  const f=isStep?st.step/(N-1)*100:isAll?pct():st.view==='done'?100:0;
+  const lab=isStep?$L(UI.step)+' '+(st.step+1)+' / '+N:(st.view==='done'?$L(UI.doneK):$L(UI.allT));
+  strip='<div class="strip" role="group" aria-label="'+lab+'">'
+   +'<span class="sEnd">01</span><div class="track" aria-hidden="true">'+ticksHTML()
+   +'<span class="tFill" style="width:'+f+'%"></span><span class="tNode" style="left:'+P(f)+'%"></span></div>'
+   +'<span class="sEnd">'+pad(N)+'</span><span class="cnt" id="metaChecked">'+cnt+'</span></div>';
+ }
+ const hs=st.view==='cover'?$L(UI.sheet)+' 00 — '+$L(UI.coverL)
+  :isStep?$L(UI.step)+' <b class="ltr">'+pad(st.step+1)+' / '+pad(N)+'</b>'
+  :isAll?$L(UI.allT):pad(N)+' / '+pad(N);
+ return '<header class="hdr"><div class="wrap"><div class="hdrTop">'
+  +'<button class="brand" data-home aria-label="HUMAN">HUMAN<span class="bsq" aria-hidden="true"></span></button>'
+  +'<div class="hstep mono" aria-hidden="true">'+hs+'</div>'
+  +'<div class="hbtns">'
+  +'<button class="tbtn dbtn" data-dims>'+ICON.dim+'<span class="ttx">'+$L(UI.dimsBtn)+'</span></button>'
+  +'<div class="lang" role="group" aria-label="EN / AR">'
+  +'<button class="lbtn" data-lang="0" aria-pressed="'+(st.lang===0)+'">EN</button>'
+  +'<button class="lbtn" data-lang="1" aria-pressed="'+(st.lang===1)+'">AR</button></div>'
+  +'<button class="tbtn" data-menu aria-haspopup="dialog">'+ICON.menu+'<span>'+$L(UI.menuT)+'</span></button>'
+  +'</div></div>'+strip+'<div class="chips">'+STEPS.map(Chip).join('')+'</div></div></header>';
+}
+const Chip=(s,i)=>{
+ const done=stepCount(i)===s.i.length;
+ return '<button class="chip'+(st.view==='step'&&st.step===i?' on':'')+(done?' done':'')+'" data-go="'+i+'">'
+  +'<span class="cn">'+pad(i+1)+'</span><span class="ct">'+$L(s.s)+'</span>'+(done?'<span class="ck" aria-hidden="true">✓</span>':'')+'</button>';
+};
+
+function planSVG(){
+ let desks='',k=0;
+ [[56,84],[142,170]].forEach(rows=>rows.forEach(y=>[[44,88],[144,188],[244,288]].forEach(cols=>cols.forEach(x=>{
+  desks+='<rect class="draw" pathLength="1" style="animation-delay:'+(0.9+k*0.03).toFixed(2)+'s" x="'+x+'" y="'+y+'" width="26" height="12"/>';k++;
+ }))));
+ const T=(x,y,c,s,dl)=>'<text x="'+x+'" y="'+y+'" class="'+c+'" style="animation-delay:'+dl+'s">'+s+'</text>';
+ return '<svg class="plan" viewBox="0 0 360 470" role="img" aria-label="'+$L(UI.planCap)+'">'
+ +'<path class="th draw" pathLength="1" d="M30 410V30h300v380H200M160 410H30"/>'
+ +'<path class="draw" pathLength="1" style="animation-delay:.15s" d="M30 118h300"/>'
+ +'<path class="draw" pathLength="1" style="animation-delay:.22s" d="M30 196h300"/>'
+ +'<path class="draw" pathLength="1" style="animation-delay:.29s" d="M30 286h300"/>'
+ +'<path class="draw" pathLength="1" style="animation-delay:.36s" d="M130 30v88M230 30v88"/>'
+ +'<path class="draw" pathLength="1" style="animation-delay:.42s" d="M130 118v78M230 118v78"/>'
+ +'<path class="draw" pathLength="1" style="animation-delay:.48s" d="M118 196v90M242 196v90M242 241h88"/>'
+ +'<path class="ac draw" pathLength="1" style="animation-delay:.58s" d="M152 213h56v56h-56z"/>'
+ +'<path class="ac draw" pathLength="1" style="animation-delay:.7s" d="M152 213l56 56M208 213l-56 56"/>'
+ +'<circle class="draw" pathLength="1" style="animation-delay:.8s" cx="74" cy="238" r="9"/>'
+ +'<path class="draw" pathLength="1" style="animation-delay:.88s" d="M314 18a8 8 0 1 0 16 0a8 8 0 1 0-16 0M322 26V12M318 16l4-4 4 4"/>'
+ +desks
+ +'<path class="draw" pathLength="1" style="animation-delay:1.28s" d="M160 410v-38M160 372a38 38 0 0 1 38 38"/>'
+ +'<path class="draw" pathLength="1" style="animation-delay:1.34s" d="M104 342h56v9h-56z"/>'
+ +'<path class="ac fd" style="animation-delay:1.5s" d="M180 286v64M174 343l6 8 6-8"/>'
+ +'<path class="draw" pathLength="1" style="animation-delay:1.4s" d="M30 446v12M330 446v12M30 452h300"/>'
+ +'<path class="draw" pathLength="1" style="animation-delay:1.46s" d="M340 30h12M340 410h12M346 30v380"/>'
+ +'<path class="draw" pathLength="1" style="animation-delay:1.52s" d="M30 425v12M46 425v12M62 425v12M78 425v12M30 431h48"/>'
+ +'<rect class="fsq fd" style="animation-delay:1.56s" x="30" y="419" width="16" height="6"/>'
+ +'<rect class="fd" style="animation-delay:1.56s" x="62" y="419" width="16" height="6"/>'
+ +T(336,21,'lblS','N',1.1)+T(80,82,'lbl',$L(LBL.work),1.5)+T(180,156,'lbl',$L(LBL.work),1.55)
+ +T(74,264,'lbl',$L(LBL.meet),1.6)+T(180,368,'lbl',$L(LBL.lobby),1.65)+T(180,207,'lblS',$L(LBL.core),1.7)
+ +T(280,82,'lblS','01',1.55)+T(80,156,'lblS','02',1.6)+T(280,156,'lblS','03',1.65)
+ +T(286,224,'lblS','04',1.7)+T(286,268,'lblS','05',1.75)
+ +'</svg>';
+}
+
+function Cover(){
+ return '<div class="inner"><div class="sheet"><div class="coverGrid">'
+ +'<div><h1 class="coverT">'+$L(UI.t1)+'<br>'+$L(UI.t2)+'</h1><p class="covSub">'+$L(UI.sub)+'</p></div>'
+ +'<div class="planWrap"><span class="cm a" aria-hidden="true">+</span><span class="cm b" aria-hidden="true">+</span><span class="cm c" aria-hidden="true">+</span><span class="cm d" aria-hidden="true">+</span>'
+ +planSVG()+'<div class="planCap"><span>'+$L(UI.planCap)+'</span><span>NTS</span></div></div>'
+ +'<div class="cMeta"><div class="covRow"><span class="covSteps">'+$L(UI.stepsCount)+'</span>'
+ +'<span class="covCount mono" id="covCount"><b class="ltr">'+st.checked.size+' / '+TOTAL+'</b>&nbsp;'+$L(UI.checkedL)+'</span></div>'
+ +'<div class="track covTrack" aria-hidden="true">'+ticksHTML()+'<span class="tFill" style="width:0%"></span></div>'
+ +'<button class="btn pri big" data-start><span>'+$L(UI.start)+'</span>'+mir('→')+'</button></div>'
+ +'</div><div class="titleblock mono"><span>'+$L(UI.sheet)+' 00 — '+$L(UI.coverL)+'</span><span>'+$L(UI.scale)+': NTS</span></div></div></div>';
+}
+
+const Item=(si,ii,t)=>{
+ const id=si+'.'+ii,on=st.checked.has(id);
+ return '<li><label class="it'+(on?' on':'')+'"><input type="checkbox" data-id="'+id+'"'+(on?' checked':'')+'><span class="ino" aria-hidden="true">'+pad(ii+1)+'</span><span class="itRule" aria-hidden="true"></span><span class="ibox" aria-hidden="true"><svg viewBox="0 0 14 14"><path d="M2.5 7.6l3.1 3.1 5.9-6.9"/></svg></span><span class="itx">'+$L(t)+'</span></label></li>';
+};
+
+function Step(i){
+ const s=STEPS[i];
+ return '<div class="sheet">'
+ +'<p class="kLab mono">'+$L(UI.step)+' <b class="ltr">'+pad(i+1)+' / '+pad(N)+'</b></p>'
+ +'<div class="numRow"><span class="stepNum">'+pad(i+1)+'</span><span class="numRule" aria-hidden="true"></span></div>'
+ +'<h1 class="stepT">'+$L(s.t)+'</h1><p class="lead">'+$L(s.d)+'</p>'
+ +'<div class="lgcBox"><p class="lab">'+$L(s.final?UI.finalTest:UI.logic)+'</p>'+chainV(s.l)+'</div>'
+ +'<ul class="cl">'+s.i.map((t,ii)=>Item(i,ii,t)).join('')+'</ul>'
+ +(s.dims?'<button class="ref" data-dims><span>'+$L(UI.refer)+'</span>'+mir('→')+'</button>':'')
+ +'<div class="out"><p class="lab">'+$L(UI.output)+'</p><p class="outT">'+$L(s.o)+'</p></div>'
+ +'<div class="navbtns"><button class="btn" data-prev>'+mir('←')+'<span>'+$L(UI.prev)+'</span></button>'
+ +'<button class="btn pri" data-next'+(i===N-1?' hidden':'')+'><span>'+$L(UI.next)+'</span>'+mir('→')+'</button></div>'
+ +'</div>';
+}
+
+/* ---- NEW: all-checklist specification sheet ---- */
+function AllView(){
+ let secs='';
+ STEPS.forEach((s,i)=>{
+  const done=stepCount(i)===s.i.length;
+  secs+='<section class="alstep" id="alstep-'+i+'" data-sec="'+i+'" aria-labelledby="alt-'+i+'">'
+   +'<header class="alHead"><span class="alNum" aria-hidden="true">'+pad(i+1)+'</span>'
+   +'<div class="alHT"><h2 class="alT" id="alt-'+i+'">'+$L(s.t)+'</h2>'
+   +'<p class="alChain mono" aria-label="'+$L(s.final?UI.finalTest:UI.logic)+'">'+chainInline(s.l)+'</p>'
+   +'<p class="alD">'+$L(s.d)+'</p></div>'
+   +'<span class="alC mono'+(done?' done':'')+'" data-acount="'+i+'">'+acB(i)+'</span></header>'
+   +'<ul class="cl">'+s.i.map((t,ii)=>Item(i,ii,t)).join('')+'</ul>'
+   +'<p class="allOut mono"><b>'+$L(UI.output)+'</b> '+mir('→')+' '+$L(s.o)+'</p>'
+   +'</section>';
+ });
+ return '<div class="inner wide"><div class="sheet allview">'
+  +'<p class="kLab mono">'+$L(UI.allK)+'</p>'
+  +'<h1 class="stepT">'+$L(UI.allT)+'</h1>'
+  +'<p class="lead">'+$L(UI.allLead)+'</p>'
+  +'<div class="allTop"><button class="btn" data-backstep>'+mir('←')+'<span>'+$L(UI.backStep)+'</span></button>'
+  +'<span class="allCnt mono" id="allCount"><b class="ltr">'+st.checked.size+' / '+TOTAL+'</b>&nbsp;'+$L(UI.checkedL)+'</span></div>'
+  +secs
+  +'<div class="allDone"'+(st.checked.size===TOTAL?'':' hidden')+'><button class="btn pri" data-donedir><span>'+$L(UI.doneK)+'</span>'+mir('→')+'</button></div>'
+  +'<div class="titleblock mono"><span>'+$L(UI.endT)+'</span><span>'+pad(N)+' '+$L(UI.stepsShort)+' · '+TOTAL+' '+$L(UI.items)+'</span></div>'
+  +'</div></div>';
+}
+
+function Done(){
+ const ch=$L(UI.doneChain);
+ return '<div class="inner"><div class="sheet">'
+ +'<p class="kLab mono">HUMAN — '+$L(UI.railSub)+'</p>'
+ +'<h1 class="doneH">'+$L(UI.doneK)+'</h1>'
+ +'<p class="doneCount mono"><b class="ltr">'+pad(N)+' / '+pad(N)+'</b></p>'
+ +'<div class="doneBar" aria-hidden="true"></div>'
+ +'<p class="hch">'+ch.map(x=>'<b>'+x+'</b>').join('<span class="hsep mir" aria-hidden="true">→</span>')+'</p>'
+ +'<p class="doneP">'+$L(UI.doneT)+'</p>'
+ +'<div class="doneBtns"><button class="btn pri" data-again>'+$L(UI.again)+'</button><button class="btn" data-reset>'+$L(UI.reset)+'</button></div>'
+ +'</div></div>';
+}
+
+function RailL(){
+ return '<aside class="railL"><button class="brand" data-home>HUMAN<span class="bsq" aria-hidden="true"></span></button>'
+ +'<p class="railSub mono">'+$L(UI.railSub)+'</p><div class="rRule"></div>'
+ +'<p class="lab">'+$L(UI.index)+'</p>'
+ +'<nav aria-label="'+$L(UI.navLabel)+'"><ol class="rol">'+STEPS.map((s,i)=>{
+  const done=stepCount(i)===s.i.length;
+  return '<li><button class="ni'+(st.view==='step'&&st.step===i?' on':'')+(done?' done':'')+'" data-go="'+i+'"'+(st.view==='step'&&st.step===i?' aria-current="step"':'')+'>'
+  +'<span class="nm" aria-hidden="true"></span><span class="nn">'+pad(i+1)+'</span><span class="ntx">'+$L(s.s)+'</span>'
+  +'<span class="nbd" data-badge="'+i+'">'+bdg(i)+'</span></button></li>';
+ }).join('')+'</ol></nav>'
+ +'<div class="rRule"></div><button class="dimsLink" data-dims>'+ICON.dim+'<span>'+$L(UI.dimsT)+'</span></button>'
+ +'<div class="rRule"></div>'
+ +'<div class="rfRow"><span class="lab">'+$L(UI.checkedL)+'</span><span class="gCount mono" id="gCount"><b class="ltr">'+st.checked.size+' / '+TOTAL+'</b></span></div>'
+ +'<div class="gBar"><i id="gFill" style="width:'+pct()+'%"></i></div></aside>';
+}
+
+function RailR(){
+ const s=st.view==='step'?STEPS[st.step]:null;
+ return '<aside class="railR">'
+ +(s?'<section><p class="lab">'+$L(s.final?UI.finalTest:UI.logic)+'</p>'+chainV(s.l)+'</section><div class="rRule"></div>'
+ +'<section><p class="lab">'+$L(UI.output)+'</p><p class="outT">'+$L(s.o)+'</p></section><div class="rRule"></div>':'')
+ +'<section><p class="lab">'+$L(UI.dimsT)+'</p>'
+ +DIMS.slice(0,3).map(d=>'<div class="rdm"><span class="dvS mono">'+$L(d)[0]+'</span><span class="dl2 mono">'+$L(d)[1]+'</span></div>').join('')
+ +'<button class="dimsLink" data-dims><span>'+$L(UI.openSheet)+'</span>'+mir('→')+'</button></section></aside>';
+}
+
+const BNav=()=>'<footer class="bnav"><button class="bb" data-prev>'+mir('←')+'<span>'+$L(UI.prev)+'</span></button>'
+ +'<button class="bb pri" data-next'+(st.step===N-1?' style="visibility:hidden"':'')+'><span>'+$L(UI.next)+'</span>'+mir('→')+'</button></footer>';
+
+function Drawer(){
+ return '<aside class="drawer ddrawer" role="dialog" aria-modal="true" aria-label="'+$L(UI.dimsT)+'">'
+ +'<div class="dHead"><div><p class="dT">'+$L(UI.dimsT)+'</p><p class="dN mono">'+$L(UI.dimsNote)+'</p></div>'
+ +'<button class="dClose" data-close aria-label="'+$L(UI.close)+'">×</button></div>'
+ +'<div class="dBody">'+DIMS.map((d,i)=>'<div class="dm"><span class="dv mono">'+$L(d)[0]+'</span><span class="dline" style="width:'+DLW[i]+'%"></span><span class="dl2 mono">'+$L(d)[1]+'</span></div>').join('')+'</div></aside>';
+}
+
+/* ---- NEW: navigation menu drawer (view switch + step index) ---- */
+function Menu(){
+ const stepActive=st.view!=='all';
+ return '<aside class="drawer mdrawer" role="dialog" aria-modal="true" aria-label="'+$L(UI.navTitle)+'">'
+ +'<div class="dHead"><div><p class="dT">'+$L(UI.navTitle)+'</p><p class="dN mono">HUMAN — '+$L(UI.railSub)+'</p></div>'
+ +'<button class="dClose" data-close aria-label="'+$L(UI.close)+'">×</button></div>'
+ +'<div class="mBody">'
+ +'<p class="lab">'+$L(UI.viewL)+'</p>'
+ +'<div class="mViews" role="radiogroup" aria-label="'+$L(UI.viewL)+'">'
+  +'<button class="mv" role="radio" aria-checked="'+stepActive+'" data-viewmode="step"><span class="mdot" aria-hidden="true"></span><span class="mtx">'+$L(UI.mv1)+'</span><span class="msub">'+$L(UI.mv1s)+'</span></button>'
+  +'<button class="mv" role="radio" aria-checked="'+(!stepActive)+'" data-viewmode="all"><span class="mdot" aria-hidden="true"></span><span class="mtx">'+$L(UI.mv2)+'</span><span class="msub">'+$L(UI.mv2s)+'</span></button>'
+ +'</div>'
+ +'<div class="rRule"></div>'
+ +'<p class="lab">'+$L(UI.stepsL)+'</p>'
+ +'<ol class="mSteps">'+STEPS.map((s,i)=>{
+  const cur=st.view==='step'&&st.step===i;
+  return '<li><button class="ms'+(cur?' on':'')+'" data-go="'+i+'" data-badge="'+i+'">'
+   +'<span class="mn mono">'+pad(i+1)+'</span><span class="mt">'+$L(s.s)+'</span>'
+   +'<span class="mb mono">'+bdg(i)+'</span></button></li>';
+ }).join('')+'</ol>'
+ +'<div class="rRule"></div>'
+ +'<button class="dimsLink" data-dims>'+ICON.dim+'<span>'+$L(UI.dimsT)+'</span></button>'
+ +'</div></aside>';
+}
+
+/* ============ RENDER / UPDATE ============ */
+const app=document.getElementById('app');
+function render(){
+ const de=document.documentElement;
+ de.lang=st.lang?'ar':'en';de.dir=st.lang?'rtl':'ltr';
+ document.body.setAttribute('lang',de.lang);
+ document.title='HUMAN — '+$L(UI.docTitle);
+ const body=st.view==='cover'?Cover():st.view==='done'?Done():st.view==='all'?AllView():Step(st.step);
+ app.innerHTML=Header()+'<div class="shell">'+RailL()+'<main class="main"><div class="inner'+(st.view==='all'?' wide':'')+'">'+body+'</div></main>'+RailR()+'</div>'
+  +(st.view==='step'?BNav():'')+'<div class="veil" data-close></div>'+Drawer()+Menu();
+ document.body.classList.remove('dimsOpen');
+ document.body.classList.remove('menuOpen');
+ /* animate progress line from its previous position */
+ const tf=app.querySelector('.tFill'),tn=app.querySelector('.tNode');
+ const tgt=st.view==='done'?100:st.view==='all'?pct():st.view==='step'?st.step/(N-1)*100:pct();
+ if(tf){
+  tf.style.width=(lastFrac)+'%';if(tn)tn.style.left=P(lastFrac)+'%';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{tf.style.width=tgt+'%';if(tn)tn.style.left=P(tgt)+'%';}));
+ }
+ lastFrac=tgt;
+ const chip=app.querySelector('.chip.on');
+ if(chip&&matchMedia('(min-width:768px)').matches)chip.scrollIntoView({inline:'center',block:'nearest'});
+ setupSpy();
+}
+function update(){
+ const mc=document.getElementById('metaChecked');
+ if(mc)mc.innerHTML=st.view==='step'
+  ?'<b class="ltr">'+stepCount(st.step)+' / '+STEPS[st.step].i.length+'</b> '+$L(UI.checkedL)
+  :'<b class="ltr">'+st.checked.size+' / '+TOTAL+'</b> '+$L(UI.checkedL);
+ if(st.view==='all'){
+  const tf=app.querySelector('.tFill'),tn=app.querySelector('.tNode');
+  if(tf)tf.style.width=pct()+'%';if(tn)tn.style.left=P(pct())+'%';
+  const ac=document.getElementById('allCount');
+  if(ac)ac.innerHTML='<b class="ltr">'+st.checked.size+' / '+TOTAL+'</b>&nbsp;'+$L(UI.checkedL);
+ }
+ app.querySelectorAll('.tk[data-tk]').forEach(t=>{const i=+t.dataset.tk;t.classList.toggle('done',stepCount(i)===STEPS[i].i.length)});
+ document.querySelectorAll('[data-badge]').forEach(b=>{
+  const i=+b.dataset.badge;b.innerHTML=bdg(i);
+  const p=b.closest('.ni, .chip, .ms');if(p)p.classList.toggle('done',stepCount(i)===STEPS[i].i.length);
+ });
+ document.querySelectorAll('[data-acount]').forEach(el=>{
+  const i=+el.dataset.acount;el.innerHTML=acB(i);
+  el.classList.toggle('done',stepCount(i)===STEPS[i].i.length);
+ });
+ const ad=app.querySelector('.allDone');if(ad)ad.hidden=st.checked.size!==TOTAL;
+ const gc=document.getElementById('gCount');if(gc)gc.innerHTML='<b class="ltr">'+st.checked.size+' / '+TOTAL+'</b>';
+ const gf=document.getElementById('gFill');if(gf)gf.style.width=pct()+'%';
+}
+function go(view,step){st.view=view;if(step!==undefined)st.step=step;render();window.scrollTo(0,0);}
+function scrollToSec(i){
+ const el=document.getElementById('alstep-'+i);
+ if(!el){go('step',i);return}
+ const beh=matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth';
+ requestAnimationFrame(()=>el.scrollIntoView({behavior:beh,block:'start'}));
+}
+/* scroll-spy: highlights the section in view (rail, chips, menu) while in All Checklist */
+function setupSpy(){
+ if(spy){spy.disconnect();spy=null}
+ if(st.view!=='all'||!('IntersectionObserver' in window))return;
+ spy=new IntersectionObserver(es=>{
+  es.forEach(e=>{if(e.isIntersecting)setCurSec(+e.target.dataset.sec)});
+ },{rootMargin:'-110px 0px -62% 0px'});
+ app.querySelectorAll('.alstep').forEach(s=>spy.observe(s));
+}
+function setCurSec(i){
+ app.querySelectorAll('.ni[data-go]').forEach(n=>n.classList.toggle('on',+n.dataset.go===i));
+ app.querySelectorAll('.chip[data-go]').forEach(n=>n.classList.toggle('on',+n.dataset.go===i));
+ app.querySelectorAll('.ms[data-go]').forEach(n=>n.classList.toggle('on',+n.dataset.go===i));
+}
+const openDims=()=>{document.body.classList.add('dimsOpen');const c=app.querySelector('.ddrawer .dClose');if(c)c.focus();};
+const closeDims=()=>document.body.classList.remove('dimsOpen');
+const openMenu=()=>{document.body.classList.add('menuOpen');const c=app.querySelector('.mdrawer .dClose');if(c)c.focus();};
+const closeMenu=()=>document.body.classList.remove('menuOpen');
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDims();closeMenu();}});
+
+app.addEventListener('click',e=>{
+ const b=e.target.closest('button,[data-close]');if(!b)return;
+ if(b.dataset.lang!==undefined){st.lang=+b.dataset.lang;render();return}
+ if(b.dataset.menu!==undefined){openMenu();return}
+ if(b.dataset.close!==undefined){closeDims();closeMenu();return}
+ if(b.dataset.viewmode!==undefined){
+  const m=b.dataset.viewmode;closeMenu();
+  if(m==='all'&&st.view!=='all'){st.view='all';render();window.scrollTo(0,0)}
+  else if(m==='step'&&(st.view==='all'||st.view==='done')){go('step',st.step)}
+  return}
+ if(b.dataset.backstep!==undefined){go('step',st.step);return}
+ if(b.dataset.donedir!==undefined){go('done');return}
+ if(b.dataset.dims!==undefined){closeMenu();openDims();return}
+ if(b.dataset.go!==undefined){
+  if(st.view==='all'){closeMenu();scrollToSec(+b.dataset.go)}
+  else{closeMenu();go('step',+b.dataset.go)}
+  return}
+ if(b.dataset.home!==undefined){go('cover');return}
+ if(b.dataset.start!==undefined){go('step',0);return}
+ if(b.dataset.prev!==undefined){st.step===0?go('cover'):go('step',st.step-1);return}
+ if(b.dataset.next!==undefined){go('step',Math.min(N-1,st.step+1));return}
+ if(b.dataset.again!==undefined){go('step',0);return}
+ if(b.dataset.reset!==undefined){st.checked.clear();go('cover');return}
+});
+app.addEventListener('change',e=>{
+ const id=e.target.dataset&&e.target.dataset.id;if(!id)return;
+ const row=e.target.closest('.it');
+ if(e.target.checked){
+  st.checked.add(id);if(row)row.classList.add('on');update();
+  if(st.checked.size===TOTAL&&st.view==='step'){
+   setTimeout(()=>{if(st.view==='step'&&st.checked.size===TOTAL)go('done')},600);
+  }
+ }else{st.checked.delete(id);if(row)row.classList.remove('on');update();}
+});
+render();
+</script>
+</body>
+</html>
